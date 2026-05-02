@@ -2,53 +2,51 @@ const axios = require("axios");
 const { Log } = require("../logging_middleware/logger");
 
 
+const CONFIG = {
+    BASE_URL: "http://20.207.122.201/evaluation-service",
+    AUTH: {
+        email: "ac1662@srmist.edu.in",
+        name: "Agamjot Kaur Choudhary",
+        rollNo: "RA2311026010681",
+        accessCode: "QkbpxH",
+        clientID: "98da9432-6426-46f8-9908-486345073c9d",
+        clientSecret: "RaZxFGAhNDYyYyxe"
+    }
+};
+
+
 const getToken = async () => {
-    const res = await axios.post(
-        "http://20.207.122.201/evaluation-service/auth",
-        {
-            email: "ac1662@srmist.edu.in",
-            name: "Agamjot Kaur Choudhary",
-            rollNo: "RA2311026010681",
-            accessCode: "QkbpxH",
-            clientID: "98da9432-6426-46f8-9908-486345073c9d",
-            clientSecret: "RaZxFGAhNDYyYyxe"
-        }
-    );
+    const res = await axios.post(`${CONFIG.BASE_URL}/auth`, CONFIG.AUTH);
     return res.data.access_token;
 };
 
 
 const getDepots = async (token) => {
-    await Log("backend", "info", "service", "Fetching depots");
+    await Log("backend", "info", "service", "Fetching depot data");
 
-    const res = await axios.get(
-        "http://20.207.122.201/evaluation-service/depots",
-        {
-            headers: { Authorization: `Bearer ${token}` }
-        }
-    );
+    const res = await axios.get(`${CONFIG.BASE_URL}/depots`, {
+        headers: { Authorization: `Bearer ${token}` }
+    });
 
     return res.data.depots;
 };
 
-
 const getVehicles = async (token) => {
-    await Log("backend", "info", "service", "Fetching vehicles");
+    await Log("backend", "info", "service", "Fetching vehicle tasks");
 
-    const res = await axios.get(
-        "http://20.207.122.201/evaluation-service/vehicles",
-        {
-            headers: { Authorization: `Bearer ${token}` }
-        }
-    );
+    const res = await axios.get(`${CONFIG.BASE_URL}/vehicles`, {
+        headers: { Authorization: `Bearer ${token}` }
+    });
 
     return res.data.vehicles;
 };
 
 
-const knapsack = (vehicles, capacity) => {
+const calculateMaxImpact = (vehicles, capacity) => {
     const n = vehicles.length;
-    const dp = Array(n + 1).fill().map(() => Array(capacity + 1).fill(0));
+    const dp = Array.from({ length: n + 1 }, () =>
+        Array(capacity + 1).fill(0)
+    );
 
     for (let i = 1; i <= n; i++) {
         const { Duration, Impact } = vehicles[i - 1];
@@ -71,7 +69,7 @@ const knapsack = (vehicles, capacity) => {
 
 const runScheduler = async () => {
     try {
-        await Log("backend", "info", "controller", "Scheduler started");
+        await Log("backend", "info", "controller", "Scheduler execution started");
 
         const token = await getToken();
 
@@ -88,7 +86,14 @@ const runScheduler = async () => {
                 `Processing depot ${depot.ID}`
             );
 
-            const maxImpact = knapsack(vehicles, capacity);
+            await Log(
+                "backend",
+                "debug",
+                "service",
+                `Capacity: ${capacity}, Total Tasks: ${vehicles.length}`
+            );
+
+            const maxImpact = calculateMaxImpact(vehicles, capacity);
 
             console.log(`Depot ${depot.ID} → Max Impact: ${maxImpact}`);
 
@@ -96,12 +101,12 @@ const runScheduler = async () => {
                 "backend",
                 "info",
                 "service",
-                `Depot ${depot.ID} completed with impact ${maxImpact}`
+                `Depot ${depot.ID} completed with max impact ${maxImpact}`
             );
         }
 
     } catch (err) {
-        await Log("backend", "error", "service", "Scheduler failed");
+        await Log("backend", "error", "service", "Scheduler execution failed");
         console.error(err.message);
     }
 };

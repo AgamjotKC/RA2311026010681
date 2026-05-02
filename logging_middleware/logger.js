@@ -10,7 +10,7 @@ const validPackages = [
     "auth", "config", "middleware", "utils"
 ];
 
-// 🔐 Get token
+
 const getToken = async () => {
     try {
         const res = await axios.post(
@@ -33,7 +33,7 @@ const getToken = async () => {
     }
 };
 
-// 🚀 Log function
+
 const Log = async (stack, level, pkg, message) => {
     try {
         if (!validStacks.includes(stack)) return console.error("Invalid stack");
